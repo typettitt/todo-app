@@ -1,0 +1,64 @@
+/*
+ * Dialog: native <dialog> wrapper. 1px border, sharp corners, brief glow on
+ * open via `open-glow` keyframes. Backdrop pulled from semantic --color-backdrop
+ * which flips between light/dark themes.
+ */
+
+.dialog {
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-bg);
+  color: var(--color-text);
+  padding: 0;
+  margin: auto;
+  position: fixed;
+  inset: 0;
+  max-width: min(44rem, calc(100vw - 2rem));
+  max-height: calc(100vh - 2rem);
+  width: 100%;
+  box-shadow: var(--shadow-glow-primary);
+  animation: dialog-open-glow 600ms var(--ease-precision) both;
+}
+
+.dialog::backdrop {
+  background: var(--color-backdrop);
+}
+
+@keyframes dialog-open-glow {
+  0% {
+    box-shadow: var(--shadow-glow-primary);
+  }
+  100% {
+    box-shadow: none;
+  }
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.title {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.description {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.body {
+  padding: 1.25rem;
+}
+
+.footer {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  padding: 1rem 1.25rem;
+  border-top: 1px solid var(--color-border);
+}

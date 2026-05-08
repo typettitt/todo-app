@@ -1,0 +1,133 @@
+/*
+ * Token layers: primitive -> semantic -> legacy compat shim.
+ *
+ * Primitive tokens are the only place hex literals live. Semantic tokens map
+ * primitives to roles consumed by components. Legacy vars (--accent, --surface,
+ * --text, --border, --background, --muted, --danger, --focus) are kept intact
+ * so existing CSS modules keep working until P3/P4 reskins them.
+ */
+:root {
+  /* Primitive: brand palette (hex literals must live ONLY in this file). */
+  --color-true-black: #000;
+  --color-stealth-gray: #111;
+  --color-graphite: #14171c;
+  --color-graphite-elevated: #1c2027;
+  --color-true-white: #fff;
+  --color-steel-gray: #f5f5f5;
+  --color-aerospace-blue: #00a8e8;
+  --color-warning-orange: #ff6b35;
+  --color-success-green: #00ff41;
+  --color-error-red: #ff0033;
+
+  /* Primitive: motion + typography. */
+  --ease-precision: cubic-bezier(0.19, 1, 0.22, 1);
+  --tracking-ultra-wide: 0.15em;
+  --font-display: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  /* Semantic: light defaults (overridden under :root.dark below). */
+  --color-bg: var(--color-true-white);
+  --color-surface: var(--color-steel-gray);
+  --color-text: var(--color-stealth-gray);
+  --color-text-muted: rgb(0 0 0 / 0.55);
+  --color-border: rgb(0 0 0 / 0.1);
+  --color-border-strong: rgb(0 0 0 / 0.15);
+  --color-accent-primary: var(--color-aerospace-blue);
+  --color-accent-success: var(--color-success-green);
+  --color-accent-danger: var(--color-error-red);
+  --shadow-glow-primary: 0 0 20px rgba(0, 168, 232, 0.3);
+  --shadow-glow-success: 0 0 20px rgba(0, 255, 65, 0.3);
+  --shadow-glow-danger: 0 0 20px rgba(255, 0, 51, 0.3);
+  --shadow-glow-neutral: 0 0 12px rgba(0, 0, 0, 0.08);
+  --color-backdrop: rgba(0, 0, 0, 0.2);
+
+  /* Legacy compat shim: existing modules read these. Keep until reskin. */
+  --accent: var(--color-accent-primary);
+  --background: var(--color-bg);
+  --border: var(--color-border);
+  --border-strong: var(--color-border-strong);
+  --danger: var(--color-accent-danger);
+  --focus: var(--color-accent-primary);
+  --muted: var(--color-text-muted);
+  --surface: var(--color-bg);
+  --text: var(--color-text);
+
+  font:
+    16px/1.5 var(--font-display),
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
+  color: var(--color-text);
+  background: var(--color-bg);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/*
+ * Dark theme override. Toggled by adding `class="dark"` on <html>. Accent
+ * primitives are deliberately left untouched — the brand colors are tuned to
+ * stay legible against either bg.
+ */
+:root.dark {
+  --color-bg: var(--color-graphite);
+  --color-surface: var(--color-graphite-elevated);
+  --color-text: var(--color-steel-gray);
+  --color-text-muted: rgb(255 255 255 / 0.6);
+  --color-border: rgb(255 255 255 / 0.1);
+  --color-border-strong: rgb(255 255 255 / 0.15);
+  --shadow-glow-neutral: 0 0 12px rgba(255, 255, 255, 0.06);
+  --color-backdrop: rgba(0, 0, 0, 0.6);
+
+  /* Legacy compat shim — re-point to the dark semantic values. */
+  --accent: var(--color-accent-primary);
+  --background: var(--color-bg);
+  --border: var(--color-border);
+  --border-strong: var(--color-border-strong);
+  --danger: var(--color-accent-danger);
+  --focus: var(--color-accent-primary);
+  --muted: var(--color-text-muted);
+  --surface: var(--color-bg);
+  --text: var(--color-text);
+}
+
+#root {
+  min-height: 100svh;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-display);
+}
+
+code,
+pre {
+  font-family: var(--font-mono);
+}
+
+h1 {
+  font-size: 2rem;
+  line-height: 1.15;
+}
+
+/*
+ * Shared primitive utility. The mono+uppercase+wide-track triplet repeats
+ * across all 6 primitives (ActionButton label/caption, Badge, Dialog title,
+ * TabStrip tab, TextInput label/error/caption). Hoisted here so the primitive
+ * modules pick it up via plain `className="… mono-uppercase"`.
+ *
+ * `.with-glow` was scoped out: each primitive owns a variant-specific
+ * `:hover` glow that composes its own border color, so a generic helper
+ * would force overrides everywhere. P3/P4 may revisit if a use site emerges.
+ */
+.mono-uppercase {
+  font-family: var(--font-mono);
+  letter-spacing: var(--tracking-ultra-wide);
+  text-transform: uppercase;
+}

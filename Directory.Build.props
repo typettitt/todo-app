@@ -1,0 +1,30 @@
+<Project>
+  <!--
+    Repo-wide MSBuild defaults. Applies to every project under this folder.
+    Per Phase 0 plan: net10.0 implicit, nullable on, warnings-as-errors,
+    enforce code style at build time, latest analyzer recommendations.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <AnalysisMode>All</AnalysisMode>
+    <!--
+      GenerateDocumentationFile is required for IDE0005 (remove unused usings)
+      to be enforced at build time. We do not actually publish XML docs, but
+      the file is needed so the analyzer wires up.
+    -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!--
+      Documented per-rule suppressions:
+        CA1014 — assembly CLSCompliant attribute is library-author noise.
+        CS1591 — missing XML doc comment for public types is noise for an
+                 internal app; we only enable doc generation to power IDE0005.
+    -->
+    <NoWarn>$(NoWarn);CA1014;CS1591</NoWarn>
+  </PropertyGroup>
+</Project>

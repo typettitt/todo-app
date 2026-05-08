@@ -1,0 +1,43 @@
+/*
+ * Badge: 1px colored border + 10% colored fill, mono uppercase.
+ * Variant sets `--badge-color`; the base rule pulls border + bg from it.
+ */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  border: 1px solid var(--badge-color, currentColor);
+  background: color-mix(in srgb, var(--badge-color, currentColor) 10%, transparent);
+  color: var(--badge-color, currentColor);
+  line-height: 1;
+}
+
+.priority-high {
+  --badge-color: var(--color-warning-orange);
+}
+
+.priority-medium {
+  --badge-color: var(--color-accent-primary);
+}
+
+.priority-low {
+  --badge-color: var(--color-text-muted);
+}
+
+.tag {
+  --badge-color: var(--color-text-muted);
+}
+
+.status-active {
+  --badge-color: var(--color-accent-primary);
+}
+
+.status-completed {
+  --badge-color: var(--color-text-muted);
+}
+
+.status-due-today {
+  --badge-color: var(--color-warning-orange);
+}

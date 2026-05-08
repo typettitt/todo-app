@@ -1,0 +1,43 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <!--
+    TargetFramework, Nullable, ImplicitUsings, etc. come from /Directory.Build.props.
+    Package versions come from /Directory.Packages.props (CPM).
+  -->
+
+  <ItemGroup>
+    <!-- Auth -->
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" />
+
+    <!-- Data -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" />
+    <PackageReference Include="Microsoft.Data.Sqlite" />
+
+    <!-- Validation -->
+    <PackageReference Include="FluentValidation" />
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
+
+    <!-- Logging -->
+    <PackageReference Include="Serilog.AspNetCore" />
+    <PackageReference Include="Serilog.Sinks.Console" />
+
+    <!-- OpenAPI UI -->
+    <PackageReference Include="Scalar.AspNetCore" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      Tests assert on internal auth-exception types
+      (EmailAlreadyExistsException, InvalidCredentialsException) so the
+      lockout/timing tests can pin behavior at the service level rather than
+      string-matching response bodies. The exceptions remain internal in the
+      API surface — only the test assembly sees them.
+    -->
+    <InternalsVisibleTo Include="TodoApp.Api.Tests" />
+  </ItemGroup>
+
+</Project>

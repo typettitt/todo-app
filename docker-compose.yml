@@ -1,0 +1,60 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    image: todoapp-api:dev
+    expose:
+      - "5000"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_HTTP_PORTS: "5000"
+      ConnectionStrings__Default: Data Source=/var/lib/todoapp/todoapp.db
+      # Local/CI e2e creates many isolated users in one minute; the API default
+      # remains 10/min unless this dev-stack override is supplied.
+      RateLimits__Auth__PermitLimit: "${TODOAPP_AUTH_RATE_LIMIT_PERMIT_LIMIT:-100}"
+    user: "1654:1654"
+    read_only: true
+    tmpfs:
+      - /tmp/todoapp:size=32m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 256
+    init: true
+    volumes:
+      - todoapp-api-data:/var/lib/todoapp
+      - todoapp-api-dev-keys:/app/.aspnet/keys
+    healthcheck:
+      test: ["CMD", "dotnet", "TodoApp.Api.dll", "--healthcheck"]
+      interval: 5s
+      timeout: 3s
+      retries: 6
+      start_period: 10s
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+      target: runtime
+    image: todoapp-web:dev
+    ports:
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      # wget ships with the alpine nginx image; curl does not.
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/ >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped
+
+volumes:
+  todoapp-api-data:
+  todoapp-api-dev-keys:

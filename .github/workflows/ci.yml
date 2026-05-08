@@ -1,0 +1,308 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  workflow-lint:
+    name: workflow lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.25.x'
+          cache: false
+
+      - name: actionlint
+        run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 -color
+
+  build-test-api:
+    name: build & test (api)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: API quality
+        run: scripts/quality/api.sh --logger "trx;LogFileName=test-results.trx"
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dotnet-test-results
+          path: '**/TestResults/*.trx'
+
+  build-test-client:
+    name: build & test (client)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: client/package-lock.json
+
+      - name: Install
+        working-directory: client
+        run: npm ci
+
+      - name: Client quality
+        run: scripts/quality/client.sh
+
+  openapi-drift:
+    name: openapi types drift
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: client/package-lock.json
+
+      - name: Restore API
+        run: dotnet restore TodoApp.slnx
+
+      - name: Install client
+        working-directory: client
+        run: npm ci
+
+      - name: Run API
+        env:
+          ASPNETCORE_ENVIRONMENT: Development
+          ASPNETCORE_URLS: http://localhost:5050
+        run: |
+          dotnet run --project src/TodoApp.Api --no-restore --no-launch-profile > api.log 2>&1 &
+          echo "$!" > api.pid
+
+      - name: Wait for OpenAPI
+        run: |
+          for _ in {1..60}; do
+            if curl -fsS http://localhost:5050/openapi/v1.json >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat api.log
+          exit 1
+
+      - name: Regenerate OpenAPI types
+        working-directory: client
+        run: npm run gen:api
+
+      - name: Fail on generated type drift
+        run: git diff --exit-code -- client/src/lib/openapi-types.ts
+
+      - name: Stop API
+        if: always()
+        run: |
+          if [ -f api.pid ]; then
+            kill "$(cat api.pid)" || true
+          fi
+
+  gitleaks:
+    name: gitleaks (full history)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Gitleaks
+        # Pin a specific Action version so detection is deterministic.
+        uses: gitleaks/gitleaks-action@v2.3.6
+        env:
+          # GITLEAKS_LICENSE only required for org accounts; OSS repos work
+          # without it. Keep the env block here so it's obvious where to plug
+          # in if/when this moves under an org.
+          GITLEAKS_NOTIFY_USER_LIST: ''
+
+  docker-build:
+    name: docker build & compose
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Validate dev compose
+        run: docker compose -f docker-compose.yml config
+
+      - name: Validate prod compose
+        env:
+          TODOAPP_CONNECTION_STRING: "Data Source=/var/lib/todoapp/todoapp.db"
+          TODOAPP_INTERNAL_HEALTH_HEADER: ci-only-health-header-secret
+          TODOAPP_JWT_SIGNING_KEY_FILE: ./secrets/jwt_signing_key
+          TODOAPP_TRUST_KNOWN_PROXIES: "172.16.0.0/12"
+        run: |
+          mkdir -p secrets
+          openssl rand -base64 -out "$TODOAPP_JWT_SIGNING_KEY_FILE" 64
+          docker compose -f docker-compose.prod.yml config
+
+      - name: Build API image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: todoapp-api:ci
+
+      - name: Build web image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./client
+          file: ./client/Dockerfile
+          load: true
+          tags: todoapp-web:ci
+
+      - name: Verify zero-env quickstart
+        run: |
+          unset ASPNETCORE_ENVIRONMENT ConnectionStrings__Default JWT_SIGNING_KEY JWT_SIGNING_KEY_FILE
+          docker compose up -d --build
+          for _ in {1..30}; do
+            if curl -fsS http://localhost:8080/api/health/ready >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          docker compose ps
+          docker compose logs api web
+          exit 1
+
+      - name: Tear down zero-env quickstart
+        if: always()
+        run: docker compose down -v
+
+      - name: Verify prod compose startup
+        env:
+          TODOAPP_CONNECTION_STRING: "Data Source=/var/lib/todoapp/todoapp.db"
+          TODOAPP_INTERNAL_HEALTH_HEADER: ci-only-health-header-secret
+          TODOAPP_JWT_SIGNING_KEY_FILE: ./secrets/jwt_signing_key
+          TODOAPP_TRUST_KNOWN_PROXIES: "172.16.0.0/12"
+          TODOAPP_WEB_BIND: "127.0.0.1:8081"
+        run: |
+          mkdir -p secrets
+          openssl rand -base64 -out "$TODOAPP_JWT_SIGNING_KEY_FILE" 64
+          docker compose -f docker-compose.prod.yml up -d --build
+          for _ in {1..60}; do
+            if curl -fsS http://localhost:8081/ >/dev/null \
+              && curl -fsS http://localhost:8081/api/health/live >/dev/null \
+              && curl -fsS -H "X-Internal-Auth: $TODOAPP_INTERNAL_HEALTH_HEADER" http://localhost:8081/api/health/ready >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          docker compose -f docker-compose.prod.yml ps
+          docker compose -f docker-compose.prod.yml logs api web
+          exit 1
+
+      - name: Tear down prod compose
+        if: always()
+        env:
+          TODOAPP_CONNECTION_STRING: "Data Source=/var/lib/todoapp/todoapp.db"
+          TODOAPP_INTERNAL_HEALTH_HEADER: ci-only-health-header-secret
+          TODOAPP_JWT_SIGNING_KEY_FILE: ./secrets/jwt_signing_key
+          TODOAPP_TRUST_KNOWN_PROXIES: "172.16.0.0/12"
+          TODOAPP_WEB_BIND: "127.0.0.1:8081"
+        run: docker compose -f docker-compose.prod.yml down -v
+
+  playwright-e2e:
+    name: playwright smoke
+    runs-on: ubuntu-latest
+    needs: [build-test-api, build-test-client]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: client/package-lock.json
+
+      - name: Start compose stack
+        run: docker compose up -d --build
+
+      - name: Wait for ready
+        run: |
+          set -e
+          for _ in {1..60}; do
+            if curl -fsS http://localhost:8080/api/health/ready >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          docker compose ps
+          docker compose logs api web
+          exit 1
+
+      - name: Install client
+        working-directory: client
+        run: npm ci
+
+      - name: Install Playwright browsers
+        working-directory: client
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright smoke + security
+        working-directory: client
+        run: npm run e2e -- --grep "@smoke|@security"
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: client/playwright-report
+          retention-days: 7
+
+      - name: Collect compose logs
+        if: always()
+        run: docker compose -f docker-compose.yml logs --no-color > compose-logs.txt || true
+
+      - name: Upload compose logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: compose-logs
+          path: compose-logs.txt
+          if-no-files-found: ignore
+
+      - name: Tear down compose stack
+        if: always()
+        run: docker compose down -v
+
+  grep-gates:
+    name: anti-pattern grep gates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Anti-pattern grep gates
+        run: scripts/quality/grep-gates.sh

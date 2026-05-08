@@ -1,0 +1,48 @@
+# Build outputs
+bin/
+obj/
+out/
+
+# IDE
+.vs/
+.idea/
+*.user
+*.suo
+*.swp
+*.swo
+.DS_Store
+.vscode/*
+!.vscode/settings.json.example
+
+# Frontend
+node_modules/
+dist/
+client/.vite/
+coverage/
+playwright-report/
+test-results/
+TestResults/
+.playwright-mcp/
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+secrets/
+
+# Local DB
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite-journal
+
+# JWT signing key (dev-only, persisted under .aspnet/keys)
+.aspnet/keys/*.key
+**/.aspnet/keys/*.key
+data/aspnet-keys/*.key
+
+# Sprint planning artifacts (local-only, per project plan)
+docs/inspiration/
+docs/sprints/

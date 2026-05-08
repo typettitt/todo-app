@@ -1,0 +1,23 @@
+# gitleaks config for SPRINT-001.
+#
+# We extend the default ruleset (`useDefault = true`) and add an explicit
+# allowlist for the demo password literal `Demo123!` that will live in
+# `src/TodoApp.Api/Data/DbInitializer.cs` once Phase 4 lands. The file does
+# not exist yet — this rule is forward-looking — but adding it now means
+# the seed work in a later phase won't trip a leaked-secret alarm.
+#
+# Reference: https://github.com/gitleaks/gitleaks#configuration
+
+title = "TodoApp gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Allow the demo seed password committed in DbInitializer.cs"
+paths = [
+  '''src/TodoApp\.Api/Data/DbInitializer\.cs''',
+]
+regexes = [
+  '''Demo123!''',
+]

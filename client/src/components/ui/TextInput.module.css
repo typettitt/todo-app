@@ -1,0 +1,103 @@
+/*
+ * TextInput / Textarea primitive — mono value, label-above tracked uppercase,
+ * 1px sharp-cornered border, focus glow + colored 2px bottom accent.
+ */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  width: 100%;
+}
+
+.label {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.control {
+  width: 100%;
+  font-family: var(--font-display);
+  font-size: 0.9375rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-bg);
+  color: var(--color-text);
+  text-transform: none;
+  transition:
+    box-shadow 150ms var(--ease-precision),
+    border-color 150ms var(--ease-precision);
+}
+
+.control:focus {
+  outline: none;
+  border-bottom: 2px solid var(--color-accent-primary);
+  box-shadow: var(--shadow-glow-primary);
+}
+
+.control:focus-visible {
+  outline: 2px solid var(--color-accent-primary);
+  outline-offset: 2px;
+}
+
+.control[aria-invalid='true'] {
+  border-color: var(--color-accent-danger);
+}
+
+.control:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.textarea {
+  min-height: 6rem;
+  resize: vertical;
+}
+
+.error {
+  font-size: 0.75rem;
+  color: var(--color-accent-danger);
+}
+
+.caption {
+  font-size: 0.625rem;
+  color: var(--color-text-muted);
+  opacity: 0.8;
+}
+
+.controlWrap {
+  position: relative;
+  display: block;
+}
+
+.controlWithAffix {
+  padding-right: 2.5rem;
+}
+
+.affixButton {
+  position: absolute;
+  top: 50%;
+  right: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transform: translateY(-50%);
+  transition: color 150ms var(--ease-precision);
+}
+
+.affixButton:hover,
+.affixButton[aria-pressed='true'] {
+  color: var(--color-accent-primary);
+}
+
+.affixButton:focus-visible {
+  outline: 2px solid var(--color-accent-primary);
+  outline-offset: 2px;
+}

@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/TodoApp.Api.Tests/TodoApp.Api.Tests.csproj" />
+    <Project Path="src/TodoApp.Api/TodoApp.Api.csproj" />
+  </Folder>
+</Solution>

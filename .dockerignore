@@ -1,0 +1,39 @@
+# Build outputs
+**/bin
+**/obj
+**/out
+**/dist
+**/node_modules
+
+# IDE / VCS metadata
+.git
+.github
+.vs
+.idea
+.vscode
+
+# Test / coverage artifacts
+**/coverage
+**/playwright-report
+**/test-results
+**/TestResults
+
+# Local DB and secrets
+**/*.db
+**/*.db-journal
+**/*.db-shm
+**/*.db-wal
+**/*.sqlite
+.env
+.env.*
+secrets
+**/*.key
+.aspnet/keys
+data
+data/aspnet-keys
+
+# Docs / planning
+docs
+
+# Husky / hooks (not needed inside image)
+.husky

@@ -1,0 +1,43 @@
+/*
+ * TabStrip: horizontal-scrolling segmented control. Sharp corners, mono
+ * uppercase labels, 1px borders. Active tab gets the accent color treatment.
+ */
+
+.tablist {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  gap: 0;
+}
+
+.tab {
+  flex: 0 0 auto;
+  padding: 0.5rem 1rem;
+  font-size: 0.75rem;
+  border: 1px solid var(--color-border);
+  border-right-width: 0;
+  background: transparent;
+  color: var(--color-text);
+  cursor: pointer;
+  transition:
+    box-shadow 150ms var(--ease-precision),
+    border-color 150ms var(--ease-precision),
+    background-color 150ms var(--ease-precision);
+  font-family: inherit;
+}
+
+.tab:last-child {
+  border-right-width: 1px;
+}
+
+.tab[aria-selected='true'] {
+  border-color: var(--color-accent-primary);
+  color: var(--color-accent-primary);
+  background: color-mix(in srgb, var(--color-accent-primary) 10%, transparent);
+}
+
+.tab:focus-visible {
+  outline: 2px solid var(--color-accent-primary);
+  outline-offset: -2px;
+}

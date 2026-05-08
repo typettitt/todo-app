@@ -1,0 +1,8 @@
+.button {
+  display: inline-flex;
+  border: 0;
+  background: transparent;
+  color: currentColor;
+  cursor: pointer;
+  padding: 0.25rem;
+}

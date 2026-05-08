@@ -1,0 +1,34 @@
+/*
+ * App-level layout shells. The authenticated header now lives in
+ * `TodoListPage`; this file only owns the unauthenticated/auth-page chrome
+ * and the RequireAuth loading shell.
+ */
+
+.authPage {
+  width: min(100%, 960px);
+  margin: 0 auto;
+  padding: 32px 20px;
+  display: grid;
+  min-height: 100svh;
+  place-items: center;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.page {
+  width: min(100%, 960px);
+  margin: 0 auto;
+  padding: 32px 20px;
+  display: grid;
+  gap: 32px;
+  color: var(--color-text);
+}
+
+.page p[role='status'],
+.page p[role='alert'] {
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  letter-spacing: var(--tracking-ultra-wide);
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}

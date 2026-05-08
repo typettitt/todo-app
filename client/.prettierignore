@@ -1,0 +1,7 @@
+dist
+.vite
+coverage
+playwright-report
+test-results
+node_modules
+src/lib/openapi-types.ts

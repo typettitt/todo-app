@@ -1,0 +1,97 @@
+# Production-shaped compose file. It keeps the container filesystem read-only,
+# mounts only explicit writable state, and supplies the JWT signing key through
+# a mounted secret file instead of a plain environment variable. The API is
+# NOT host-published in prod — only the web service is reachable from the host.
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    image: todoapp-api:${TODOAPP_IMAGE_TAG:-latest}
+    expose:
+      - "5000"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_HTTP_PORTS: "5000"
+      ConnectionStrings__Default: "${TODOAPP_CONNECTION_STRING:?Set TODOAPP_CONNECTION_STRING}"
+      JWT_SIGNING_KEY_FILE: /run/secrets/jwt_signing_key
+      # Required outside Development. /health/ready returns 401 unless callers
+      # send this exact value in X-Internal-Auth; /health/live stays public for
+      # container liveness checks.
+      Internal__HealthHeader: "${TODOAPP_INTERNAL_HEALTH_HEADER:?Set TODOAPP_INTERNAL_HEALTH_HEADER}"
+      # CSV of proxy IPs / CIDR blocks that may set X-Forwarded-For. The API
+      # rate limiter partitions by client IP; if this is wrong, traffic falls
+      # back to the docker bridge IP bucket.
+      Trust__KnownProxies: "${TODOAPP_TRUST_KNOWN_PROXIES:?Set TODOAPP_TRUST_KNOWN_PROXIES to the trusted proxy IP/CIDR}"
+    user: "1654:1654"
+    read_only: true
+    tmpfs:
+      - /tmp/todoapp:size=32m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 256
+    init: true
+    volumes:
+      - todoapp-api-data:/var/lib/todoapp
+    secrets:
+      - source: jwt_signing_key
+        target: jwt_signing_key
+    healthcheck:
+      test: ["CMD", "dotnet", "TodoApp.Api.dll", "--healthcheck"]
+      interval: 5s
+      timeout: 3s
+      retries: 6
+      start_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+      target: runtime
+    image: todoapp-web:${TODOAPP_IMAGE_TAG:-latest}
+    ports:
+      - "${TODOAPP_WEB_BIND:-127.0.0.1:8080}:8080"
+    depends_on:
+      api:
+        condition: service_healthy
+    user: "101:101"
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx
+      - /var/run
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 100
+    init: true
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/ >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    restart: unless-stopped
+
+volumes:
+  todoapp-api-data:
+
+secrets:
+  jwt_signing_key:
+    file: "${TODOAPP_JWT_SIGNING_KEY_FILE:?Set TODOAPP_JWT_SIGNING_KEY_FILE to a local secret file}"

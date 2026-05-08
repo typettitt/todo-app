@@ -1,0 +1,58 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Pre-commit chain — fails fast on the first error.
+#
+# Order matches Phase 0 plan:
+#   1. actionlint (only if workflow files staged)
+#   2. API restore/format/build/test (only if API or .NET build inputs staged)
+#   3. gitleaks (staged secrets scan)
+#   4. shared grep gates
+#   5. client lint/test/build (only if any client/** files staged)
+#
+# Bypass with `git commit --no-verify` only on local throwaway branches —
+# never on shared branches.
+
+set -e
+
+repo_root=$(git rev-parse --show-toplevel)
+cd "$repo_root"
+
+staged=$(git diff --cached --name-only --diff-filter=ACMRTUXB)
+
+if echo "$staged" | grep -qE '^\.github/workflows/.*\.ya?ml$'; then
+    if command -v actionlint >/dev/null 2>&1; then
+        echo "[husky] actionlint (workflow files staged)"
+        actionlint
+    else
+        echo "[husky] actionlint not installed — skipping (install via brew/go; CI still enforces)"
+    fi
+else
+    echo "[husky] no workflow changes — skipping actionlint"
+fi
+
+if echo "$staged" | grep -qE '^(src/|TodoApp\.slnx$|Directory\.(Build|Packages)\.props$|global\.json$|\.config/dotnet-tools\.json$)'; then
+    echo "[husky] scripts/quality/api.sh (.NET files staged)"
+    scripts/quality/api.sh
+else
+    echo "[husky] no API/.NET build input changes — skipping API quality checks"
+fi
+
+if command -v gitleaks >/dev/null 2>&1; then
+    echo "[husky] gitleaks protect --staged"
+    gitleaks protect --staged --redact -v --no-banner
+else
+    echo "[husky] gitleaks not installed — skipping (install via brew/apt/docker; CI still enforces)"
+fi
+
+echo "[husky] scripts/quality/grep-gates.sh"
+scripts/quality/grep-gates.sh
+
+if echo "$staged" | grep -qE '^client/'; then
+    echo "[husky] scripts/quality/client.sh (client files staged)"
+    scripts/quality/client.sh
+else
+    echo "[husky] no client/ changes — skipping client quality checks"
+fi
+
+echo "[husky] pre-commit OK"
