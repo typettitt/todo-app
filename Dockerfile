@@ -3,7 +3,7 @@
 # Base images are pinned to immutable multi-arch manifest digests. Refresh these
 # intentionally after patch/image scanning.
 ARG DOTNET_SDK_IMAGE=mcr.microsoft.com/dotnet/sdk:10.0.203-noble@sha256:8a90a473da5205a16979de99d2fc20975e922c68304f5c79d564e666dc3982fc
-ARG DOTNET_ASPNET_IMAGE=mcr.microsoft.com/dotnet/aspnet:10.0.7-noble-chiseled@sha256:f43461f1774d09e4da09014531b8098547ea601a8552958dee2f977f8c1842b5
+ARG DOTNET_ASPNET_IMAGE=mcr.microsoft.com/dotnet/aspnet:10.0.7-noble-chiseled-extra@sha256:b4855d6d1c557c19a7c7165b354a138b47c17b29669ad0b3b22fb046a1b84fd8
 
 # ----- Stage 1: build & publish -----
 FROM ${DOTNET_SDK_IMAGE} AS build
@@ -43,7 +43,6 @@ ENV ASPNETCORE_HTTP_PORTS=5000 \
     DOTNET_EnableDiagnostics_IPC=0 \
     DOTNET_EnableDiagnostics_Debugger=0 \
     DOTNET_EnableDiagnostics_Profiler=0 \
-    DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1 \
     TMPDIR=/tmp/todoapp
 EXPOSE 5000
 

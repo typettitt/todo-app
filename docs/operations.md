@@ -110,9 +110,9 @@ npm --prefix client run e2e -- --grep "@security"
 
 ## Local Quality Checks
 
-A small set of local-only quality scripts live under `scripts/quality/`. They
-are NOT wired to CI; they exist to give a fast manual signal before pushing
-significant doc or config changes.
+A small set of quality scripts live under `scripts/quality/`. Most are wired to
+CI and can also be run locally before pushing. `leak-scan.sh` is the local-only
+exception for doc/prose hygiene.
 
 | Script | Purpose |
 | --- | --- |
